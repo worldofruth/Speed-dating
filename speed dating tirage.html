@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Speed dating MDA · Tirage</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Mrs+Saint+Delafield&family=Montserrat:wght@500;600;700&display=swap');
+  :root { --rust:#7b3a17; --rust2:#8a4520; --cream:#f3e6d3; --soft:#d9b896; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; color:var(--cream); font-family:"Montserrat","Helvetica Neue",Arial,sans-serif; display:flex; flex-direction:column; align-items:center; padding:28px 16px 32px;
+    background-color:var(--rust);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(90deg, rgba(0,0,0,.035) 0 1px, transparent 1px 3px),
+      radial-gradient(ellipse at center, rgba(255,255,255,.06), rgba(0,0,0,.18)); }
+  .top { text-align:center; margin-bottom:20px; }
+  .kicker { letter-spacing:5px; font-size:11px; font-weight:700; color:var(--soft); }
+  h1 { margin:8px 0 0; font-family:"Courier Prime",monospace; font-weight:400; font-size:clamp(34px,6.5vw,60px); letter-spacing:6px; line-height:1; }
+  .script { font-family:"Mrs Saint Delafield",cursive; font-size:clamp(34px,6vw,54px); color:var(--cream); margin-top:-4px; line-height:1.1; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-bottom:20px; }
+  .chip { border:1px solid rgba(243,230,211,.5); background:transparent; color:var(--cream); padding:7px 15px; border-radius:2px; font:600 12px "Montserrat",sans-serif; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; }
+  .chip.on { background:var(--cream); color:var(--rust); border-color:var(--cream); }
+  .card { width:min(760px,100%); min-height:250px; border:1px solid rgba(243,230,211,.45); outline:1px solid rgba(243,230,211,.18); outline-offset:6px; padding:34px 30px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; transition:opacity .35s, transform .35s; background:rgba(0,0,0,.06); }
+  .card.pop { opacity:.2; transform:translateY(6px); }
+  .cat { font-family:"Mrs Saint Delafield",cursive; font-size:32px; color:var(--soft); margin-bottom:10px; min-height:30px; }
+  .q { font-family:"Courier Prime",monospace; font-size:clamp(24px,4.2vw,38px); font-weight:400; line-height:1.3; letter-spacing:2px; text-transform:uppercase; }
+  .q.placeholder { color:var(--soft); font-size:clamp(15px,2.4vw,19px); letter-spacing:2px; }
+  .actions { display:flex; gap:10px; margin:28px 0 8px; flex-wrap:wrap; justify-content:center; }
+  button.main { background:var(--cream); color:var(--rust); border:none; padding:15px 30px; border-radius:2px; font:700 14px "Montserrat",sans-serif; letter-spacing:2.5px; text-transform:uppercase; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--cream); border:1px solid rgba(243,230,211,.6); padding:13px 20px; border-radius:2px; font:600 13px "Montserrat",sans-serif; letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; }
+  button:disabled { opacity:.4; cursor:default; }
+  .left { color:var(--soft); font-size:12px; letter-spacing:2px; text-transform:uppercase; margin-bottom:26px; }
+  .timer { width:min(760px,100%); display:flex; align-items:center; justify-content:center; gap:16px; flex-wrap:wrap; border-top:1px solid rgba(243,230,211,.3); border-bottom:1px solid rgba(243,230,211,.3); padding:16px 18px; }
+  .clock { font-family:"Courier Prime",monospace; font-size:clamp(40px,7vw,58px); letter-spacing:4px; font-variant-numeric:tabular-nums; min-width:170px; text-align:center; }
+  .clock.end { color:var(--soft); animation:blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity:.35; } }
+  .mins { display:flex; align-items:center; gap:8px; font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--soft); }
+  .mins input { width:56px; padding:7px; border-radius:2px; border:1px solid rgba(243,230,211,.6); background:transparent; color:var(--cream); font:700 16px "Courier Prime",monospace; text-align:center; }
+  footer { margin-top:26px; font-size:10px; letter-spacing:4px; color:var(--soft); font-weight:600; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="kicker">ÉGLISE MFD ONLINE · PU MDA</div>
+    <h1>SPEED DATING</h1><div class="script">apprendre à se connaître</div>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="card" id="card">
+    <div class="cat" id="cat"></div>
+    <div class="q placeholder" id="q">Appuie sur « Tirer une question » pour commencer</div>
+  </div>
+
+  <div class="actions">
+    <button class="main" id="draw">🎲 Tirer une question</button>
+    <button class="ghost" id="reset">↺ Recommencer</button>
+  </div>
+  <div class="left" id="left"></div>
+
+  <div class="timer">
+    <div class="mins">Tour de <input type="number" id="mins" min="1" max="60" value="5"> min</div>
+    <div class="clock" id="clock">05:00</div>
+    <button class="ghost" id="start">▶ Lancer</button>
+    <button class="ghost" id="treset">↺</button>
+  </div>
+
+  <footer>PRIÈRE D'UNITÉ · NOVEMBRE 2026</footer>
+
+<script>
+const DATA = {
+  "🌱 Faire connaissance": [
+    "Décris-toi en 3 mots.",
+    "Un plat qui te rappelle ton enfance ?",
+    "Qu'est-ce qui te fait rire à coup sûr ?",
+    "Un talent caché ?",
+    "À quoi ressemble ta journée idéale ?",
+    "Un rêve que tu aimerais réaliser ?"
+  ],
+  "🖤 Foi": [
+    "Comment as-tu rencontré Jésus ?",
+    "Ton verset du moment, et pourquoi ?",
+    "Dans quel personnage biblique te reconnais-tu le plus ? Pourquoi ?",
+    "Une prière que Dieu a exaucée récemment ?",
+    "Qu'est-ce que Dieu t'apprend en ce moment ?",
+    "Une louange qui te touche en ce moment ?",
+    "Ton style de musique gospel préféré, et pourquoi ?"
+  ],
+  "🤝 Église et service": [
+    "Comment es-tu arrivé(e) à MFD ?",
+    "Où sers-tu, et qu'est-ce que tu y aimes ?",
+    "Un moment fort vécu à l'église ?",
+    "Si tu pouvais lancer un projet à l'église, ce serait quoi ?"
+  ],
+  "🎲 Fun": [
+    "Une série ou un film que tu pourrais revoir 10 fois ?",
+    "Tu pars en voyage demain : où ?",
+    "Plutôt matin ou plutôt soir ?"
+  ]
+};
+const cats = Object.keys(DATA);
+const CC = {"🌱 Faire connaissance":"#22c38e","🖤 Foi":"#ff4f8b","🤝 Église et service":"#7b5cff","🎲 Fun":"#ff9a2e"};
+function confetti(){
+  const colors = ["#ff4f8b","#fff36b","#7b5cff","#22c38e","#ff9a2e","#5ad1ff"];
+  for (let i = 0; i < 70; i++){
+    const c = document.createElement("div"); c.className = "confetti";
+    c.style.left = Math.random()*100 + "vw"; c.style.background = colors[i % colors.length];
+    c.style.animationDuration = (1.6 + Math.random()*1.6) + "s"; c.style.animationDelay = (Math.random()*.3) + "s";
+    document.body.appendChild(c); setTimeout(() => c.remove(), 3600);
+  }
+}
+let active = new Set(cats);
+let used = new Set();
+
+const $ = id => document.getElementById(id);
+function renderChips(){
+  const box = $("chips"); box.innerHTML = "";
+  const all = document.createElement("button");
+  all.className = "chip" + (active.size === cats.length ? " on" : "");
+  all.textContent = "Toutes";
+  all.onclick = () => { active = new Set(cats); renderChips(); updateLeft(); };
+  box.appendChild(all);
+  cats.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "chip" + (active.has(c) && active.size !== cats.length ? " on" : "");
+    b.textContent = c.replace(/^\S+\s/, "");
+    b.onclick = () => { active = new Set([c]); renderChips(); updateLeft(); };
+    box.appendChild(b);
+  });
+}
+function pool(){
+  const p = [];
+  active.forEach(c => DATA[c].forEach(q => { if(!used.has(q)) p.push([c,q]); }));
+  return p;
+}
+function updateLeft(){
+  const n = pool().length;
+  $("left").textContent = n ? n + " question" + (n>1?"s":"") + " restante" + (n>1?"s":"") : "Toutes les questions ont été tirées · appuie sur Recommencer";
+  $("draw").disabled = n === 0;
+}
+$("draw").onclick = () => {
+  const p = pool(); if(!p.length) return;
+  const [c,q] = p[Math.floor(Math.random()*p.length)];
+  used.add(q);
+  $("cat").textContent = c.replace(/^\S+\s/, "");
+  $("q").textContent = q.replace(/ ([?:!])/g, "\u00a0$1");
+  $("q").classList.remove("placeholder");
+  const card = $("card"); card.classList.add("pop"); setTimeout(()=>card.classList.remove("pop"),60);
+  updateLeft();
+};
+$("reset").onclick = () => {
+  used.clear();
+  $("cat").textContent = "";
+  $("q").textContent = "Appuie sur « Tirer une question » pour commencer";
+  $("q").classList.add("placeholder");
+  updateLeft();
+};
+
+// Minuteur
+let remaining = 300, timer = null;
+function fmt(s){ return String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0"); }
+function showClock(){ $("clock").textContent = fmt(remaining); }
+function beep(){
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0,0.35,0.7].forEach(t => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.25, ctx.currentTime+t);
+      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+0.2);
+    });
+  } catch(e) {}
+}
+function resetTimer(){
+  clearInterval(timer); timer = null;
+  remaining = Math.max(1, parseInt($("mins").value)||5) * 60;
+  $("clock").classList.remove("end");
+  $("start").textContent = "▶ Lancer";
+  showClock();
+}
+$("start").onclick = () => {
+  if(timer){ clearInterval(timer); timer = null; $("start").textContent = "▶ Reprendre"; return; }
+  if(remaining <= 0) resetTimer();
+  $("start").textContent = "⏸ Pause";
+  timer = setInterval(() => {
+    remaining--; showClock();
+    if(remaining <= 0){ clearInterval(timer); timer = null; $("clock").textContent = "Fin du tour 🙏"; $("clock").classList.add("end"); $("start").textContent = "▶ Lancer"; beep(); }
+  }, 1000);
+};
+$("treset").onclick = resetTimer;
+$("mins").onchange = resetTimer;
+
+renderChips(); updateLeft(); showClock();
+</script>
+</body>
+</html>
